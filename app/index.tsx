@@ -1,20 +1,24 @@
 // app/index.tsx
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";   
 import { useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
 } from "react-native";
 
-export default function HomeScreen() {
+export default function Index() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();  
+
+  const handleSignUp = () => {
+    router.push("call");  
+  };
 
   return (
     <KeyboardAvoidingView
@@ -22,16 +26,14 @@ export default function HomeScreen() {
       style={styles.container}
     >
       <View style={styles.inner}>
-        {/* Logo */}
-        <Image
-          source={{ uri: "https://via.placeholder.com/150/6366f1/ffffff?text=LOGO" }}
-          style={styles.logo}
-        />
+        {/* Offline Logo */}
+        <View style={styles.logo}>
+          <Text style={styles.logoText}>LOGO</Text>
+        </View>
 
         <Text style={styles.title}>Welcome</Text>
         <Text style={styles.subtitle}>Start your journey with us today</Text>
 
-        {/* Email */}
         <TextInput
           placeholder="Email"
           value={email}
@@ -42,7 +44,6 @@ export default function HomeScreen() {
           placeholderTextColor="rgba(255,255,255,0.7)"
         />
 
-        {/* Password */}
         <TextInput
           placeholder="Password"
           value={password}
@@ -52,12 +53,11 @@ export default function HomeScreen() {
           placeholderTextColor="rgba(255,255,255,0.7)"
         />
 
-        {/* Sign Up Button */}
-        <TouchableOpacity style={styles.button}>
+      
+        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
           <Text style={styles.buttonText}>Sign Up Free</Text>
         </TouchableOpacity>
 
-        {/* Links */}
         <View style={styles.linksContainer}>
           <Text style={styles.footerText}>Already have an account? </Text>
           <Link href="/login" style={styles.linkText}>
@@ -74,39 +74,27 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#4f46e5", // Indigo fallback
-  },
-  inner: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
+  container: { flex: 1, backgroundColor: "#4f46e5" },
+  inner: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32 },
   logo: {
     width: 128,
     height: 128,
     borderRadius: 32,
+    backgroundColor: "#6366f1",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 40,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 20,
+    borderWidth: 4,
+    borderColor: "rgba(255,255,255,0.3)",
   },
-  title: {
-    fontSize: 48,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 20,
-    color: "rgba(255,255,255,0.8)",
-    textAlign: "center",
-    marginBottom: 48,
-  },
+  logoText: { fontSize: 32, fontWeight: "900", color: "white", letterSpacing: 3 },
+  title: { fontSize: 48, fontWeight: "bold", color: "white", marginBottom: 8 },
+  subtitle: { fontSize: 20, color: "rgba(255,255,255,0.8)", textAlign: "center", marginBottom: 48 },
   input: {
     width: "100%",
     backgroundColor: "rgba(255,255,255,0.2)",
@@ -129,27 +117,10 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 10,
   },
-  buttonText: {
-    textAlign: "center",
-    color: "#6366f1",
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-  linksContainer: {
-    flexDirection: "row",
-    marginTop: 32,
-    alignItems: "center",
-  },
-  footerText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 16,
-  },
-  linkText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-    textDecorationLine: "underline",
-  },
+  buttonText: { textAlign: "center", color: "#6366f1", fontWeight: "bold", fontSize: 20 },
+  linksContainer: { flexDirection: "row", marginTop: 32, alignItems: "center" },
+  footerText: { color: "rgba(255,255,255,0.8)", fontSize: 16 },
+  linkText: { color: "white", fontWeight: "bold", fontSize: 16, textDecorationLine: "underline" },
   terms: {
     position: "absolute",
     bottom: 50,
