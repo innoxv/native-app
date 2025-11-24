@@ -13,12 +13,18 @@ module.exports = function (api) {
     plugins: [
       'expo-router/babel', 
       'react-native-reanimated/plugin',
-            [
+      [
         'module-resolver',
         {
           alias: {
             '@xenova/transformers': '@xenova/transformers/dist/transformers.js',
           },
+        },
+      ],
+      [
+        'babel-plugin-transform-inline-environment-variables',
+        {
+          include: ['self'],
         },
       ],
  

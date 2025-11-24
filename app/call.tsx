@@ -7,14 +7,16 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import { pipeline } from '@xenova/transformers';
+import { pipeline, env } from '@xenova/transformers';
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+// Configure for React Native (no browser cache, remote models only)
+env.allowLocalModels = false;
+env.useBrowserCache = false;
+env.allowRemoteModels = true;
+
 const GROQ_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY!;
 
 const callGroq = async (userText: string) => {
@@ -40,11 +42,21 @@ export default function CallScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [transcriber, setTranscriber] = useState<any>(null);
+  const [loadingStatus, setLoadingStatus] = useState('Loading model... (first time ~80MB)');
 
   useEffect(() => {
-    pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en')
-      .then(model => setTranscriber(model))
-      .catch(() => console.log('Model downloading...'));
+    (async () => {
+      try {
+        setLoadingStatus('Downloading tokenizer...');
+        const model = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
+        setTranscriber(model);
+        setLoadingStatus('Model ready! Hold to speak.');
+        console.log('Whisper Tiny loaded');
+      } catch (err) {
+        console.error('Model error:', err);
+        setLoadingStatus('Download failed — retry or check internet');
+      }
+    })();
   }, []);
 
   const startRecording = async () => {
@@ -58,20 +70,31 @@ export default function CallScreen() {
 
   const stopRecording = async () => {
     setIsRecording(false);
-    if (!recording || !transcriber) return;
+    if (!recording || !transcriber) {
+      setTranscript('Model not ready yet');
+      return;
+    }
 
     await recording.stopAndUnloadAsync();
     const uri = recording.getURI();
-    if (!uri) return;
+    if (!uri) {
+      setTranscript('No audio recorded');
+      return;
+    }
 
     setTranscript('Transcribing...');
-    const result = await transcriber(uri);
-    const text = result?.text?.trim() || 'Hello';
-    setTranscript(text);
+    try {
+      const result = await transcriber(uri, { language: 'en', task: 'transcribe' });
+      const text = result.text?.trim() || 'Nothing heard';
+      setTranscript(text);
 
-    const reply = await callGroq(text);
-    setAiResponse(reply);
-    Speech.speak(reply);
+      const reply = await callGroq(text);
+      setAiResponse(reply);
+      Speech.speak(reply);
+    } catch (err) {
+      setTranscript('Transcription failed');
+      console.error(err);
+    }
   };
 
   return (
@@ -94,15 +117,14 @@ export default function CallScreen() {
           style={[styles.micButton, isRecording && styles.micButtonActive]}
           onPressIn={startRecording}
           onPressOut={stopRecording}
+          disabled={!transcriber}
         >
           <Text style={styles.micText}>
             {isRecording ? 'Release' : 'Hold to Speak'}
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.hint}>
-          First use downloads voice model (~80MB). Works offline after!
-        </Text>
+        <Text style={styles.loadingText}>{loadingStatus}</Text>
       </View>
     </KeyboardAvoidingView>
   );
@@ -113,38 +135,12 @@ const styles = StyleSheet.create({
   inner: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   title: { fontSize: 48, fontWeight: 'bold', color: 'white', marginBottom: 8 },
   subtitle: { fontSize: 20, color: 'rgba(255,255,255,0.8)', marginBottom: 40 },
-  userBubble: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 16,
-    borderRadius: 20,
-    maxWidth: '85%',
-    marginBottom: 20,
-    alignSelf: 'flex-end',
-  },
+  userBubble: { backgroundColor: 'rgba(255,255,255,0.2)', padding: 16, borderRadius: 20, maxWidth: '85%', marginBottom: 20, alignSelf: 'flex-end' },
   userText: { color: 'white', fontSize: 18 },
-  aiBubble: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 20,
-    maxWidth: '85%',
-    marginBottom: 40,
-    alignSelf: 'flex-start',
-    elevation: 8,
-  },
+  aiBubble: { backgroundColor: 'white', padding: 16, borderRadius: 20, maxWidth: '85%', marginBottom: 40, alignSelf: 'flex-start', elevation: 8 },
   aiText: { color: '#6366f1', fontSize: 18, fontWeight: '600' },
-  micButton: {
-    backgroundColor: 'white',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 15,
-  },
-  micButtonActive: {
-    backgroundColor: '#f472b6',
-    transform: [{ scale: 0.95 }],
-  },
+  micButton: { backgroundColor: 'white', width: 180, height: 180, borderRadius: 90, justifyContent: 'center', alignItems: 'center', elevation: 15 },
+  micButtonActive: { backgroundColor: '#f472b6', transform: [{ scale: 0.95 }] },
   micText: { fontSize: 22, fontWeight: 'bold', color: '#6366f1' },
-  hint: { position: 'absolute', bottom: 60, color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center' },
+  loadingText: { position: 'absolute', bottom: 60, color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center' },
 });
